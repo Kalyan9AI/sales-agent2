@@ -20,7 +20,7 @@ const io = socketIo(server, {
           process.env.CLIENT_URL,
           `https://${process.env.AZURE_WEBAPP_NAME}.canadacentral-01.azurewebsites.net`,
           // Allow any Azure subdomain for flexibility
-          /^https:\/\/.*\.azurewebsites\.net$/,
+          /^https:\/\/.*\.\.net$/,
           // Allow any https domain for testing
           /^https:\/\/.*/
         ].filter(Boolean)
