@@ -18,7 +18,7 @@ const io = socketIo(server, {
     origin: process.env.NODE_ENV === 'production' 
       ? [
           process.env.CLIENT_URL,
-          `https://${process.env.AZURE_WEBAPP_NAME}.canadacentral-01.azurewebsites.net`,
+          `https://${process.env.AZURE_WEBAPP_NAME}.azurewebsites.net`,
           // Allow any Azure subdomain for flexibility
           /^https:\/\/.*\.azurewebsites\.net$/,
           // Allow any https domain for testing
@@ -45,7 +45,7 @@ app.use(cors({
   origin: process.env.NODE_ENV === 'production'
     ? [
         process.env.CLIENT_URL,
-        `https://${process.env.AZURE_WEBAPP_NAME}.canadacentral-01.azurewebsites.net`,
+        `https://${process.env.AZURE_WEBAPP_NAME}.azurewebsites.net`,
         /^https:\/\/.*\.azurewebsites\.net$/,
         /^https:\/\/.*/
       ].filter(Boolean)
@@ -160,7 +160,7 @@ function addToCache(key, value) {
 }
 
 // Company context for AI agent
-const SYSTEM_CONTEXT = `You are Sarah, a friendly and professional sales representative from US Hotel Food Supplies. 
+const SYSTEM_CONTEXT = `You are Sarah, a friendly and professional sales representative from US Food Supplies. 
 
 ROLE: You are calling hotel managers to remind them about restocking orders and take new orders conversationally. You are calm, friendly, helpful, and never pushy. You should also look for natural opportunities to recommend related or seasonal products, without sounding aggressive or interruptive.
 
@@ -220,7 +220,7 @@ PRICING GUIDELINES:
 - Bulk discounts: 5+ cases get $2–3 off per case
 
 SAMPLE RESPONSES:
-- Opening: "Hi, I'm Sarah calling from US Hotel Food Supplies, customer sales department. Can I know if I am speaking with the manager [manager name]?"
+- Opening: "Hi, I'm Sarah calling from US Food Supplies, customer sales department. Can I know if I am speaking with the manager [manager name]?"
 - After confirmation: "Great! Just wanted to make sure you're stocked up. Looks like your regular order of Asiago Cheese Bagels is due. Would you like to go ahead and reorder the same?"
 - Customer: "I need water" → "Perfect! How many cases of bottled water (16.9 fl oz) would you like? We recommend a minimum of 3 cases at $20 per case."
 - Customer: "5 cases" → "Excellent! I'll add 5 cases of bottled water at $20 per case to your order. Anything else?"
@@ -501,7 +501,7 @@ app.post('/api/make-call', async (req, res) => {
     let webhookUrl;
     if (process.env.NODE_ENV === 'production') {
       // Production: Use Azure App Service URL
-      webhookUrl = process.env.CLIENT_URL || `https://${process.env.AZURE_WEBAPP_NAME}.canadacentral-01.azurewebsites.net`;
+      webhookUrl = process.env.CLIENT_URL || `https://${process.env.AZURE_WEBAPP_NAME}.azurewebsites.net`;
       if (!webhookUrl) {
         throw new Error('Production environment requires CLIENT_URL or AZURE_WEBAPP_NAME to be set');
       }
@@ -596,7 +596,7 @@ app.post('/api/voice/incoming', async (req, res) => {
 
     conversation.push({
       role: 'user',
-      content: 'The call just connected. Say EXACTLY this greeting and nothing more: "Hi, I am Sarah calling from US Hotel Food Supplies, customer sales department. Can I know if I am speaking with the manager [manager name]?" - Replace [manager name] with the actual manager name. Use only this format, do not add any other questions or sentences.'
+      content: 'The call just connected. Say EXACTLY this greeting and nothing more: "Hi, I am Sarah calling from US Food Supplies, customer sales department. Can I know if I am speaking with the manager [manager name]?" - Replace [manager name] with the actual manager name. Use only this format, do not add any other questions or sentences.'
     });
 
     const completion = await openai.chat.completions.create({

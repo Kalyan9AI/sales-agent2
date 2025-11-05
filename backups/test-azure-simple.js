@@ -15,7 +15,7 @@ async function testAzureSpeechSimple() {
     
     // Test 1: Basic Text-to-Speech
     console.log('\n🔊 Testing: Basic Text-to-Speech');
-    const testText = 'Hello! This is Sarah from US Hotel Food Supplies. Testing Azure Text-to-Speech with Luna voice.';
+    const testText = 'Hello! This is Sarah from US Food Supplies. Testing Azure Text-to-Speech with Luna voice.';
     
     const audioBuffer = await azureSpeech.textToSpeech(testText);
     console.log(`✅ Generated audio: ${audioBuffer.length} bytes`);
