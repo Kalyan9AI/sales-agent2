@@ -80,6 +80,9 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+const LIVE_CHAT_MODEL = process.env.OPENAI_LIVE_MODEL || 'gpt-4o-mini';
+const ANALYSIS_MODEL = process.env.OPENAI_ANALYSIS_MODEL || 'gpt-4.1';
+
 // Initialize Azure integration
 let azureIntegration;
 try {
@@ -418,7 +421,7 @@ async function prewarmServices() {
   try {
     // Prewarm GPT with a lightweight prompt
     const gptPrewarm = openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: LIVE_CHAT_MODEL,
       messages: [{ role: 'user', content: 'Say a brief hello.' }],
       max_tokens: 20,
       temperature: 0.3
@@ -600,7 +603,7 @@ app.post('/api/voice/incoming', async (req, res) => {
     });
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: LIVE_CHAT_MODEL,
       messages: conversation,
       max_tokens: 50,  // Keeping reduced tokens for shorter responses
       temperature: 0.3,  // Keeping reduced temperature for consistent responses
@@ -1384,7 +1387,7 @@ async function generateAIResponse(conversation, callId, hotel) {
     }
     
     const completion = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
+      model: LIVE_CHAT_MODEL,
       messages: conversation,
       temperature: 0.5,  // Slightly reduced for better consistency while maintaining natural variation
       max_tokens: 100    // Reduced from 150 as most responses don't need that many tokens
@@ -1423,7 +1426,7 @@ app.post('/api/analyze-call', async (req, res) => {
     console.log(`🔍 Analyzing call ${callId} with AI...`);
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: ANALYSIS_MODEL,
       messages: [
         {
           role: "system",
@@ -1547,7 +1550,7 @@ app.post('/api/test/latency', async (req, res) => {
     // Test OpenAI latency
     const openaiStart = Date.now();
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: LIVE_CHAT_MODEL,
       messages: [
         { role: "system", content: "You are a helpful assistant." },
         { role: "user", content: "Say hello briefly." }
