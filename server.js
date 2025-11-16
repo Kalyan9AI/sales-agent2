@@ -628,9 +628,13 @@ app.post('/api/voice/incoming', async (req, res) => {
     });
     console.log(`🤖 AI Response emitted for callId ${callId}: "${aiResponse}"`);
 
+    const fallbackText = aiResponse.replace(/\*pause\*/g, '');
+    let speechSource = {
+      type: 'say',
+      text: fallbackText
+    };
+
     // Use Azure TTS if available, otherwise fallback to Twilio
-    let azureSuccess = false;
-    let azureTwiml = null;
     if (azureIntegration) {
       try {
         console.log(`🎙️ USING AZURE TTS: Synthesizing "${aiResponse}" with Luna Neural voice`);
@@ -647,9 +651,15 @@ app.post('/api/voice/incoming', async (req, res) => {
         
         console.log(`✅ AZURE TTS SUCCESS: Generated audio with Luna voice`);
         
-        // Use the Azure TwiML response directly
-        azureTwiml = ttsResult.twiml;
-        azureSuccess = true;
+        // Extract the audio URL from the Azure TwiML and use it inside the gather
+        const azureTwimlStr = ttsResult.twiml?.toString?.();
+        const playMatch = azureTwimlStr ? azureTwimlStr.match(/<Play>([^<]+)<\/Play>/) : null;
+        if (playMatch && playMatch[1]) {
+          speechSource = {
+            type: 'play',
+            url: playMatch[1]
+          };
+        }
         
         // Schedule cleanup of temp audio file
         if (ttsResult.audioFileName) {
@@ -661,72 +671,45 @@ app.post('/api/voice/incoming', async (req, res) => {
       } catch (azureError) {
         console.error('❌ AZURE TTS FAILED, falling back to Twilio Alice voice:', azureError);
         console.log(`🔄 USING TWILIO TTS: Falling back to Alice voice for "${aiResponse}"`);
-        twiml.say({
-          voice: 'alice',
-          language: 'en-US'
-        }, aiResponse);
+        speechSource = {
+          type: 'say',
+          text: fallbackText
+        };
       }
     } else {
       // Fallback to Twilio's built-in TTS
       console.log(`🔄 USING TWILIO TTS: Azure not available, using Alice voice for "${aiResponse}"`);
-      twiml.say({
-        voice: 'alice',
-        language: 'en-US'
-      }, aiResponse);
+      speechSource = {
+        type: 'say',
+        text: fallbackText
+      };
     }
 
-    // Set up enhanced speech recognition with interruption support
-    if (azureSuccess && azureTwiml) {
-      // Create a new TwiML response that includes the Azure audio and gather settings
-      const finalTwiml = new twilio.twiml.VoiceResponse();
-      
-      // Add the Azure audio content by parsing and extracting the play command
-      const azureTwimlStr = azureTwiml.toString();
-      const playMatch = azureTwimlStr.match(/<Play>([^<]+)<\/Play>/);
-      if (playMatch) {
-        finalTwiml.play(playMatch[1]);
-      } else {
-        // Fallback: use the Azure TwiML content directly
-        finalTwiml.say('Please wait while I prepare your response.');
-      }
-      
-      // Add speech recognition with proper timeout handling
-      finalTwiml.gather({
-        input: 'speech',
-        timeout: 10,  // Increased to 10 seconds
-        speechTimeout: 'auto',
-        speechModel: 'experimental_utterances',
-        enhanced: true,
-        language: 'en-US',
-        action: `/api/voice/process-speech?callId=${callId}`,
-        method: 'POST',
-        bargeIn: true,  // Enable interruption - user can speak while agent is talking
-        partialResultCallback: `/api/voice/partial-speech?callId=${callId}` // For real-time interruption
-      });
-      
-      // Handle timeout scenario
-      finalTwiml.redirect(`/api/voice/timeout?callId=${callId}`);
-      
-      res.type('text/xml');
-      res.send(finalTwiml.toString());
-      return;
+    const gatherOptions = {
+      input: 'speech',
+      timeout: 10,
+      speechTimeout: 'auto',
+      speechModel: 'experimental_utterances',
+      enhanced: true,
+      language: 'en-US',
+      action: `/api/voice/process-speech?callId=${callId}`,
+      method: 'POST',
+      bargeIn: true,
+      partialResultCallback: `/api/voice/partial-speech?callId=${callId}`
+    };
+
+    const gather = twiml.gather(gatherOptions);
+    if (speechSource.type === 'play' && speechSource.url) {
+      gather.play(speechSource.url);
     } else {
-      // Use regular TwiML with fallback
-      twiml.gather({
-        input: 'speech',
-        timeout: 10,  // Increased to 10 seconds
-        speechTimeout: 'auto',
-        speechModel: 'experimental_utterances',
-        enhanced: true,
-        language: 'en-US',
-        action: `/api/voice/process-speech?callId=${callId}`,
-        method: 'POST',
-        bargeIn: true
-      });
-      
-      // Handle timeout scenario
-      twiml.redirect(`/api/voice/timeout?callId=${callId}`);
+      gather.say({
+        voice: 'alice',
+        language: 'en-US'
+      }, speechSource.text);
     }
+    
+    // Handle timeout scenario
+    twiml.redirect(`/api/voice/timeout?callId=${callId}`);
 
   } catch (error) {
     console.error('Error in voice handling:', error);
